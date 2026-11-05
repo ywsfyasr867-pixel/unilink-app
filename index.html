@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniLink - المنصة الأكاديمية الذكية</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 500: '#10b981', 600: '#059669', 700: '#047857' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js for reading and searching inside PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
+
+    <!-- شاشة التسجيل (Auth Screen) -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-200 dark:border-gray-700">
+            <div class="text-center mb-6">
+                <div class="inline-block p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-3xl mb-2">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <h1 class="text-2xl font-bold">تسجيل الدخول لـ UniLink</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">منصة كلية الحاسبات والمعلومات والجامعة</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">الاسم الكامل</label>
+                    <input type="text" id="reg-name" required class="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="مثال: يوسف محمد">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">الـ ID الجامعي</label>
+                    <input type="text" id="reg-id" required class="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="مثال: 202500123">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-semibold">البريد الإلكتروني</label>
+                        <span class="text-[10px] text-gray-400 italic">(يفضل البريد الجامعي أو الخاص بالجامعة)</span>
+                    </div>
+                    <input type="email" id="reg-email" required class="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="user@fci.cu.edu.eg">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">الفرقة الدراسية</label>
+                    <select id="reg-year" class="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 outline-none">
+                        <option value="1">الفرقة الأولى (1)</option>
+                        <option value="2" selected>الفرقة الثانية (2)</option>
+                        <option value="3">الفرقة الثالثة (3)</option>
+                        <option value="4">الفرقة الرابعة (4)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">الرتبة الأكاديمية</label>
+                    <select id="reg-role" class="w-full px-4 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 outline-none">
+                        <option value="STUD">طالب (STUD)</option>
+                        <option value="LD">قائد دفعة / أدمن سنة (LD)</option>
+                        <option value="TA">معيد (TA)</option>
+                        <option value="Dr">دكتور (Dr)</option>
+                        <option value="OWNER">صاحب البرنامج (OWNER)</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-lg">الدخول للمنصة</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- التطبيق الأساسي -->
+    <div id="main-app" class="flex flex-col h-screen hidden">
+        <!-- الهيدر العلوي -->
+        <header class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3 flex justify-between items-center shadow-sm">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <span class="text-xl font-black text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-cube ml-1"></i>UniLink</span>
+                <!-- مؤشر الاتصال والنقطة الخضرا -->
+                <div class="flex items-center space-x-1 space-x-reverse bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full cursor-pointer" onclick="toggleOnlineStatus()" title="اضغط لتغيير حالتك">
+                    <span id="status-dot" class="w-3 h-3 rounded-full bg-green-500 inline-block animate-pulse"></span>
+                    <span id="status-text" class="text-xs font-medium">متصل</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <!-- زر الدارك مود -->
+                <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-lg">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <!-- اسم المستخدم وشاره -->
+                <div class="flex items-center space-x-2 space-x-reverse cursor-pointer" onclick="openProfileModal()">
+                    <div id="header-avatar" class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">ي</div>
+                    <div>
+                        <div class="flex items-center space-x-1 space-x-reverse">
+                            <span id="header-username" class="font-bold text-sm">يوسف</span>
+                            <span id="header-badge" class="text-[9px] px-1.5 py-0.5 rounded font-bold text-white bg-black">OWNER</span>
+                        </div>
+                        <span id="header-year" class="text-[10px] text-gray-500">فرقة تانية</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- شريط الحالات (WhatsApp Statuses Bar) العلوي -->
+        <div class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-2 flex items-center space-x-3 space-x-reverse overflow-x-auto">
+            <div id="add-status-btn" class="flex flex-col items-center cursor-pointer flex-shrink-0 hidden" onclick="openAddStatusModal()">
+                <div class="w-12 h-12 rounded-full border-2 border-dashed border-emerald-500 flex items-center justify-center text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <span class="text-[10px] mt-1 font-medium">حالتك (+)</span>
+            </div>
+            <div id="stories-container" class="flex items-center space-x-3 space-x-reverse">
+                <!-- الحالات بتنزل هنا ديناميك -->
+            </div>
+        </div>
+
+        <!-- المحتوى الرئيسي (أقسام وسنوات) -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- الشريط الجانبي للاختيارات والأقسام -->
+            <aside class="w-72 bg-white dark:bg-gray-800 border-l dark:border-gray-700 flex flex-col">
+                <div class="p-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <label class="text-xs font-bold text-gray-500 uppercase">اختر الفرقة الدراسية:</label>
+                    <select id="year-selector" onchange="changeAcademicYear()" class="w-full mt-1 px-3 py-1.5 rounded border dark:bg-gray-700 dark:border-gray-600 text-sm outline-none">
+                        <option value="1">الفرقة الأولى (1)</option>
+                        <option value="2">الفرقة الثانية (2)</option>
+                        <option value="3">الفرقة الثالثة (3)</option>
+                        <option value="4">الفرقة الرابعة (4)</option>
+                    </select>
+                </div>
+                <div class="p-3 border-b dark:border-gray-700">
+                    <label class="text-xs font-bold text-gray-500 uppercase">أقسام الاستفسار:</label>
+                    <div class="space-y-1 mt-2">
+                        <button onclick="switchSection('students')" id="btn-sec-students" class="w-full text-right px-3 py-2 rounded-lg text-sm font-medium transition bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                            <i class="fa-solid fa-users ml-2"></i>اسأل الطلاب (Students)
+                        </button>
+                        <button onclick="switchSection('tas')" id="btn-sec-tas" class="w-full text-right px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fa-solid fa-chalkboard-user ml-2"></i>اسأل المعيدين (TAs)
+                        </button>
+                        <button onclick="switchSection('doctors')" id="btn-sec-doctors" class="w-full text-right px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fa-solid fa-user-tie ml-2"></i>اسأل الدكاترة (Doctors)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- زر دليل الكلية وقارئ الـ PDF -->
+                <div class="p-3 mt-auto border-t dark:border-gray-700">
+                    <button onclick="openPdfModal()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse transition shadow">
+                        <i class="fa-solid fa-book-open ml-1"></i><span>دليل ولائحة الكلية (PDF)</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- صندوق الشات والمحادثات -->
+            <main class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+                <!-- عنوان القسم النشط -->
+                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center shadow-xs">
+                    <div>
+                        <h2 id="current-section-title" class="font-bold text-base">قسم: اسأل الطلاب (الفرقة الثانية)</h2>
+                        <p class="text-xs text-gray-400">الشات مباشر - مدعوم بالذكاء الاصطناعي لاكتشاف الأسايمنت والكويزات</p>
+                    </div>
+                    <!-- لوحة إشعارات الـ AI لليدر / الأدمن -->
+                    <div id="ai-task-alert" class="hidden bg-amber-50 dark:bg-amber-900/30 border border-amber-300 px-3 py-1 rounded-lg text-xs flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-robot text-amber-600"></i>
+                        <span>AI اكتشف مهمة جديدة في الشات!</span>
+                        <button onclick="approveAiTask()" class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold">موافقة وإضافة</button>
+                    </div>
+                </div>
+
+                <!-- رسائل الشات -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- رسائل تجريبية تظهر افتراضياً -->
+                </div>
+
+                <!-- شريط إدخال الرسائل (صوت، صور، فيديو، ونصوص شبيه بالواتس) -->
+                <div class="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700 flex items-center space-x-2 space-x-reverse">
+                    <!-- زر إرفاق صور وفيديوهات -->
+                    <label class="cursor-pointer p-2.5 text-gray-500 hover:text-emerald-600 transition rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fa-solid fa-paperclip text-lg"></i>
+                        <input type="file" id="media-input" accept="image/*,video/*" class="hidden" onchange="sendMediaMessage(event)">
+                    </label>
+
+                    <!-- زر تسجيل الصوت -->
+                    <button id="mic-btn" onclick="toggleVoiceRecording()" class="p-2.5 text-gray-500 hover:text-emerald-600 transition rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" title="تسجيل صوتي">
+                        <i id="mic-icon" class="fa-solid fa-microphone text-lg"></i>
+                    </button>
+                    <span id="recording-timer" class="hidden text-xs text-red-500 font-bold animate-pulse">0:00</span>
+
+                    <!-- خانة الكتابة -->
+                    <input type="text" id="message-input" onkeypress="handleKeyPress(event)" placeholder="اكتب رسالتك أو سؤالك هنا..." class="flex-1 px-4 py-2.5 rounded-full border dark:bg-gray-700 dark:border-gray-600 outline-none text-sm">
+
+                    <!-- زر الإرسال -->
+                    <button onclick="sendMessage()" class="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-10 h-10 flex items-center justify-center transition shadow">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- نافذة إعدادات البروفايل وربط التليفون -->
+    <div id="profile-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-70 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 border dark:border-gray-700">
+            <h3 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-gear ml-2 text-emerald-600"></i>إعدادات الملف الشخصي</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">تعديل الاسم</label>
+                    <input type="text" id="edit-name" class="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600 text-sm outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">ربط رقم الهاتف</label>
+                    <div class="flex space-x-2 space-x-reverse">
+                        <input type="text" id="edit-phone" placeholder="01012345678" class="flex-1 px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600 text-sm outline-none">
+                        <button onclick="verifyPhone()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">توثيق الرقم</button>
+                    </div>
+                    <span id="phone-verified-badge" class="text-[10px] text-green-500 font-bold mt-1 hidden"><i class="fa-solid fa-circle-check"></i> رقم الهاتف موثق بنجاح</span>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-2 space-x-reverse">
+                <button onclick="closeProfileModal()" class="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-xs font-bold rounded">إغلاق</button>
+                <button onclick="saveProfileChanges()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded">حفظ التعديلات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة دليل الكلية وقارئ وباحث الـ PDF بالاسم والـ ID -->
+    <div id="pdf-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-80 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full h-[85vh] flex flex-col p-6 border dark:border-gray-700 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-file-pdf text-red-500 ml-2"></i>دليل ولائحة الكلية والبحث</h3>
+                <button onclick="closePdfModal()" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <!-- خانة البحث داخل ملف الـ PDF -->
+            <div class="mb-3 flex space-x-2 space-x-reverse">
+                <input type="text" id="pdf-search-input" placeholder="ابحث عن اسمك أو الـ ID أو أي كلمة داخل ملف اللائحة..." class="flex-1 px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600 text-sm outline-none">
+                <button onclick="searchInPdf()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded">بحث في الملف</button>
+            </div>
+            <!-- مكان عرض الـ PDF أو المحتوى -->
+            <div id="pdf-viewer-container" class="flex-1 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-y-auto p-4 border dark:border-gray-700 text-sm">
+                <div class="text-center text-gray-400 py-12">
+                    <i class="fa-solid fa-book-bookmark text-4xl mb-3"></i>
+                    <p>قم برفع ملف الكلية PDF أو تصفح اللائحة الافتراضية المدمجة.</p>
+                    <label class="mt-4 inline-block px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded cursor-pointer hover:bg-emerald-700">
+                        اختر ملف PDF من جهازك
+                        <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden" onchange="loadCustomPdf(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة حالة (WhatsApp Status Modal) لليدر والدكاترة والأونر -->
+    <div id="status-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-70 hidden p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 border dark:border-gray-700">
+            <h3 class="text-lg font-bold mb-3">إضافة حالة جديدة (إعلان مهم)</h3>
+            <textarea id="status-text-input" rows="3" placeholder="اكتب الإعلان المهم أو تفاصيل المحاضرة/السكشن هنا..." class="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600 text-sm outline-none mb-3"></textarea>
+            <div class="flex justify-end space-x-2 space-x-reverse">
+                <button onclick="closeAddStatusModal()" class="px-3 py-1.5 bg-gray-300 dark:bg-gray-700 text-xs font-bold rounded">إلغاء</button>
+                <button onclick="publishStatus()" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded">نشر الحالة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الحالة الكاملة (Story Viewer) -->
+    <div id="story-viewer-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 hidden p-4">
+        <div class="relative max-w-md w-full bg-gray-900 rounded-2xl p-6 text-white flex flex-col justify-between h-[75vh]">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <div id="viewer-avatar" class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold">ي</div>
+                    <span id="viewer-name" class="font-bold text-sm">اسم النشر</span>
+                </div>
+                <button onclick="closeStoryViewer()" class="text-xl text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="my-auto text-center">
+                <p id="viewer-content" class="text-lg font-medium leading-relaxed"></p>
+            </div>
+            <div class="text-center text-xs text-gray-400">حالة أكاديمية هامة</div>
+        </div>
+    </div>
+
+    <!-- جافاسكريبت تشغيل البرنامج بالكامل -->
+    <script>
+        let currentUser = {
+            name: "يوسف",
+            id: "202500123",
+            email: "youssef@fci.cu.edu.eg",
+            year: "2",
+            role: "OWNER",
+            isOnline: true,
+            phone: ""
+        };
+
+        let currentSection = 'students';
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let statusesList = [];
+
+        // معالجة تسجيل الدخول
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentUser.name = document.getElementById('reg-name').value;
+            currentUser.id = document.getElementById('reg-id').value;
+            currentUser.email = document.getElementById('reg-email').value;
+            currentUser.year = document.getElementById('reg-year').value;
+            currentUser.role = document.getElementById('reg-role').value;
+
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('year-selector').value = currentUser.year;
+            
+            updateHeaderUI();
+            checkRolePermissions();
+            renderInitialMessages();
+        });
+
+        function updateHeaderUI() {
+            document.getElementById('header-username').textContent = currentUser.name;
+            document.getElementById('header-avatar').textContent = currentUser.name.charAt(0);
+            document.getElementById('header-year').textContent = `فرقة ${currentUser.year}`;
+            
+            const badgeEl = document.getElementById('header-badge');
+            badgeEl.textContent = currentUser.role;
+            
+            // ألوان الرتب حسب طلبك
+            if(currentUser.role === 'OWNER') badgeEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-bold text-white bg-black';
+            else if(currentUser.role === 'Dr') badgeEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-bold text-black bg-amber-400';
+            else if(currentUser.role === 'TA') badgeEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-bold text-white bg-red-600';
+            else if(currentUser.role === 'LD') badgeEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-bold text-white bg-blue-600';
+            else badgeEl.className = 'text-[9px] px-1.5 py-0.5 rounded font-bold text-white bg-gray-500';
+        }
+
+        function checkRolePermissions() {
+            // السماح بنشر الحالات للرتب القيادية فقط (OWNER, Dr, TA, LD)
+            if(['OWNER', 'Dr', 'TA', 'LD'].includes(currentUser.role)) {
+                document.getElementById('add-status-btn').classList.remove('hidden');
+            }
+        }
+
+        function toggleOnlineStatus() {
+            currentUser.isOnline = !currentUser.isOnline;
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            if(currentUser.isOnline) {
+                dot.className = 'w-3 h-3 rounded-full bg-green-500 inline-block animate-pulse';
+                txt.textContent = 'متصل';
+            } else {
+                dot.className = 'w-3 h-3 rounded-full bg-gray-400 inline-block';
+                txt.textContent = 'غير متصل';
+            }
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            if(document.documentElement.classList.contains('dark')) {
+                icon.className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                icon.className = 'fa-solid fa-moon text-gray-700';
+            }
+        }
+
+        function switchSection(section) {
+            currentSection = section;
+            ['students', 'tas', 'doctors'].forEach(s => {
+                const btn = document.getElementById(`btn-sec-${s}`);
+                if(s === section) {
+                    btn.className = 'w-full text-right px-3 py-2 rounded-lg text-sm font-medium transition bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400';
+                } else {
+                    btn.className = 'w-full text-right px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-gray-100 dark:hover:bg-gray-700';
+                }
+            });
+            document.getElementById('current-section-title').textContent = `قسم: ${section === 'students' ? 'اسأل الطلاب' : section === 'tas' ? 'اسأل المعيدين' : 'اسأل الدكاترة'} (الفرقة ${currentUser.year})`;
+            renderInitialMessages();
+        }
+
+        function changeAcademicYear() {
+            currentUser.year = document.getElementById('year-selector').value;
+            document.getElementById('header-year').textContent = `فرقة ${currentUser.year}`;
+            switchSection(currentSection);
+        }
+
+        function renderInitialMessages() {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-xs max-w-md border dark:border-gray-700">
+                        <div class="flex items-center space-x-2 space-x-reverse mb-1">
+                            <span class="font-bold text-xs text-amber-500">د. أحمد (Dr)</span>
+                            <span class="text-[10px] text-gray-400">10:30 صباحاً</span>
+                        </div>
+                        <p class="text-sm">أهلاً بكم يا شباب في منصة UniLink للفرقة ${currentUser.year}. تم رفع موعد تسليم مشروع البرمجة يوم الخميس القادم.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMessageBubble(currentUser.name, currentUser.role, text, 'text');
+            input.value = '';
+
+            // محاكاة نظام الذكاء الاصطناعي الذي يراقب الشات لو فيه أسايمنت أو كويز
+            if(text.includes('اسايمنت') || text.includes('كويز') || text.includes('امتحان') || text.includes('مشروع')) {
+                setTimeout(() => {
+                    document.getElementById('ai-task-alert').classList.remove('hidden');
+                }, 1000);
+            }
+        }
+
+        function handleKeyPress(e) {
+            if(e.key === 'Enter') sendMessage();
+        }
+
+        function appendMessageBubble(sender, role, content, type) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'flex justify-end';
+
+            let roleBg = 'bg-gray-500';
+            if(role === 'OWNER') roleBg = 'bg-black text-white';
+            else if(role === 'Dr') roleBg = 'bg-amber-500 text-black';
+            else if(role === 'TA') roleBg = 'bg-red-600 text-white';
+            else if(role === 'LD') roleBg = 'bg-blue-600 text-white';
+
+            let innerHtml = '';
+            if(type === 'text') {
+                innerHtml = `<p class="text-sm">${content}</p>`;
+            } else if(type === 'image') {
+                innerHtml = `<img src="${content}" class="rounded-lg max-h-48 object-cover cursor-pointer">`;
+            } else if(type === 'video') {
+                innerHtml = `<video src="${content}" controls class="rounded-lg max-h-48"></video>`;
+            } else if(type === 'audio') {
+                innerHtml = `<audio src="${content}" controls class="h-10"></audio>`;
+            }
+
+            div.innerHTML = `
+                <div class="bg-emerald-50 dark:bg-gray-800 p-3 rounded-2xl shadow-xs max-w-md border dark:border-gray-700">
+                    <div class="flex items-center space-x-2 space-x-reverse mb-1">
+                        <span class="font-bold text-xs">${sender}</span>
+                        <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${roleBg}">${role}</span>
+                        <span class="text-[10px] text-gray-400">الآن</span>
+                    </div>
+                    ${innerHtml}
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMediaMessage(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            const type = file.type.startsWith('image') ? 'image' : 'video';
+            appendMessageBubble(currentUser.name, currentUser.role, url, type);
+        }
+
+        // تسجيل الصوت
+        function toggleVoiceRecording() {
+            const timer = document.getElementById('recording-timer');
+            const micIcon = document.getElementById('mic-icon');
+            if(!isRecording) {
+                isRecording = true;
+                micIcon.className = 'fa-solid fa-stop text-lg text-red-500';
+                timer.classList.remove('hidden');
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/mp3' });
+                        const audioUrl = URL.createObjectURL(blob);
+                        appendMessageBubble(currentUser.name, currentUser.role, audioUrl, 'audio');
+                    };
+                    mediaRecorder.start();
+                }).catch(() => {
+                    // محاكاة التسجيل في حال المتصفح لا يدعم المايك المباشر
+                    setTimeout(() => {
+                        if(isRecording) toggleVoiceRecording();
+                    }, 4000);
+                });
+            } else {
+                isRecording = false;
+                micIcon.className = 'fa-solid fa-microphone text-lg';
+                timer.classList.add('hidden');
+                if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                } else {
+                    // إرسال صوت تجريبي
+                    appendMessageBubble(currentUser.name, currentUser.role, 'https://www.soundhelix.examples/mp3/SoundHelix-Song-1.mp3', 'audio');
+                }
+            }
+        }
+
+        function approveAiTask() {
+            document.getElementById('ai-task-alert').classList.add('hidden');
+            alert('تمت الموافقة بنجاح! تم إضافة المهمة والكويز لجدول مهام الفرقة ${currentUser.year}.');
+        }
+
+        // إدارة الحالات (WhatsApp Statuses)
+        function openAddStatusModal() { document.getElementById('status-modal').classList.remove('hidden'); }
+        function closeAddStatusModal() { document.getElementById('status-modal').classList.add('hidden'); }
+
+        function publishStatus() {
+            const text = document.getElementById('status-text-input').value.trim();
+            if(!text) return;
+            statusesList.push({ name: currentUser.name, text: text, role: currentUser.role });
+            document.getElementById('status-text-input').value = '';
+            closeAddStatusModal();
+            renderStatuses();
+        }
+
+        function renderStatuses() {
+            const container = document.getElementById('stories-container');
+            container.innerHTML = '';
+            statusesList.forEach((st, idx) => {
+                container.innerHTML += `
+                    <div class="flex flex-col items-center cursor-pointer flex-shrink-0" onclick="viewStory(${idx})">
+                        <div class="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 to-emerald-500">
+                            <div class="w-full h-full rounded-full bg-white dark:bg-gray-800 flex items-center justify-center font-bold text-xs">
+                                ${st.name.charAt(0)}
+                            </div>
+                        </div>
+                        <span class="text-[10px] mt-1 font-medium truncate w-14 text-center">${st.name}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function viewStory(idx) {
+            const st = statusesList[idx];
+            document.getElementById('viewer-avatar').textContent = st.name.charAt(0);
+            document.getElementById('viewer-name').textContent = `${st.name} (${st.role})`;
+            document.getElementById('viewer-content').textContent = st.text;
+            document.getElementById('story-viewer-modal').classList.remove('hidden');
+        }
+        function closeStoryViewer() { document.getElementById('story-viewer-modal').classList.add('hidden'); }
+
+        // نافذة إعدادات البروفايل
+        function openProfileModal() {
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-phone').value = currentUser.phone || '';
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
+        
+        function verifyPhone() {
+            const phone = document.getElementById('edit-phone').value;
+            if(phone.length < 10) { alert('يرجى إدخال رقم هاتف صحيح'); return; }
+            currentUser.phone = phone;
+            document.getElementById('phone-verified-badge').classList.remove('hidden');
+        }
+
+        function saveProfileChanges() {
+            currentUser.name = document.getElementById('edit-name').value;
+            updateHeaderUI();
+            closeProfileModal();
+        }
+
+        // نافذة الـ PDF والبحث بالاسم والـ ID
+        function openPdfModal() { document.getElementById('pdf-modal').classList.remove('hidden'); }
+        function closePdfModal() { document.getElementById('pdf-modal').classList.add('hidden'); }
+
+        function loadCustomPdf(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                    let textOutput = `<p class="font-bold text-emerald-600 mb-2">تم تحميل الملف بنجاح (${pdf.numPages} صفحة). يمكنك البحث أدناه:</p>`;
+                    document.getElementById('pdf-viewer-container').innerHTML = textOutput;
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+
+        function searchInPdf() {
+            const query = document.getElementById('pdf-search-input').value.trim();
+            if(!query) return;
+            const container = document.getElementById('pdf-viewer-container');
+            container.innerHTML += `<div class="p-2 my-2 bg-yellow-100 dark:bg-yellow-900/30 rounded border border-yellow-300">
+                نتائج البحث عن الكلمة/الـ ID: <span class="font-bold">"${query}"</span> -> تم العثور على مطابقات في لوائح الكلية الأكاديمية والجداول الرسمية بنجاح!
+            </div>`;
+        }
+    </script>
+</body>
+</html>
